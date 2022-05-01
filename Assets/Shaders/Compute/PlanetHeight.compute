@@ -1,0 +1,31 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "../Includes/FractalNoise.cginc"
+#include "../Includes/Math.cginc"
+
+StructuredBuffer<float3> vertices;
+RWStructuredBuffer<float> heights;
+uint numVertices;
+
+float4 continents_noise_params[3];
+
+float oceans_floor_depth;
+float oceans_floor_smoothing;
+float oceans_depth_multiplier;
+
+[numthreads(100,1,1)]
+void CSMain (uint id : SV_DispatchThreadID)
+{
+    if (id >= numVertices) { return; }
+    float3 vertex_pos = vertices[id];
+
+    float continents_shape = simpleNoise(vertex_pos, continents_noise_params);
+
+    float oceans_floor_shape = -oceans_floor_depth + continents_shape * 0.15;
+    continents_shape = smoothMax(continents_shape, oceans_floor_shape, oceans_floor_smoothing);
+    continents_shape *= (continents_shape < 0) ? 1 + oceans_depth_multiplier : 1;
+
+}
+
+
